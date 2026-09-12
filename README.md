@@ -1,77 +1,47 @@
-# Echo Protocol - 3D Time Loop Tactical Game
+# Echo Protocol
 
-A 3D top-down action game prototype built from scratch with **Three.js**, **WebGL**, and the **Web Audio API**.
+A 3D top-down tactical action game prototype made with Three.js and the Web Audio API.
 
-The core mechanic is a **12-second time loop**. You play through a room, and when time runs out (or when you die), time rewinds. In the next loop, a holographic ghost clone replays everything you did in the previous run — shooting, moving, and drawing enemy fire — so you can team up with your past self to clear security gates and defeat enemies.
+The main mechanic is a 12-second time loop. In each run, your actions (movement, rotation, shooting, and abilities) are recorded every tick. When the timer runs out or when you take fatal damage, time rewinds. In the next loop, a holographic ghost clone of your previous run replays beside you, allowing you to trigger switches, distract sentries, and flank enemies together.
 
----
+## How it Works
 
-## 🎮 Gameplay & Mechanics
+1. Loop 1: You move forward, step on a pressure switch, or take enemy fire.
+2. Loop 2: A ghost clone replays your exact path and shots. You can use it as a distraction to flank enemies or hit the second switch.
+3. Loop 3: You fight alongside two past clones to breach the mainframe and destroy the boss mech.
 
-1. **Loop 1 (Alpha):** Scout ahead, step on a pressure switch, or take enemy fire.
-2. **Loop 2 (Beta):** Your past clone spawns and executes your previous run with sub-frame precision. You can now flank the enemies while they are distracted by your clone.
-3. **Loop 3 (Gamma):** You fight alongside two past clones to breach the mainframe and destroy the heavy boss mech.
+## Project Structure
 
----
+src/
+├── main.js       # Game loop and level manager
+├── player.js     # Player movement, dash, and aiming
+├── ghost.js      # Input and transform recording / replay
+├── enemy.js      # Enemy AI (drones, turrets, boss)
+├── bullets.js    # Bullet and particle object pool
+├── map.js        # Procedural floor, walls, and switches
+├── audio.js      # Sound effects using Web Audio API
+└── ui.js         # Health bars and hit markers
 
-## 📁 Project Structure
+## Technical Details
 
-Organized into modular ES6 modules:
+- Time Loop System: Samples player transform and inputs at fixed ticks, then uses Vector3.lerp for smooth ghost playback.
+- Object Pooling: Bullets and particles are pre-allocated to avoid garbage collection spikes and keep a steady 60 FPS.
+- Procedural Audio: All sound effects (shots, hit markers, explosions, rewind sweeps) are synthesized in code using the Web Audio API without any external audio files.
+- Visuals: Three.js PCF soft shadows, procedural canvas floor textures, and subtle bloom post-processing.
 
-```text
-echo-protocol/
-├── index.html          # Main HTML page & tactical HUD
-├── package.json        # Dependencies (Three.js, Vite)
-├── README.md           # Documentation
-└── src/
-    ├── main.js         # Game loop & stage manager
-    ├── player.js       # Player movement, dash, and laser aiming
-    ├── ghost.js        # Recording & replay system
-    ├── enemy.js        # Enemy AI (drones, turrets, boss)
-    ├── bullets.js      # Bullet & particle object pool (zero GC stutter)
-    ├── map.js          # Procedural floor texture, walls, and switches
-    ├── audio.js        # Procedural sound effects using Web Audio API
-    └── ui.js           # Hit markers, damage numbers, and health bars
-```
+## Controls
 
----
+- WASD: Move
+- Left Click: Shoot
+- Space: Dash
+- E: Interact / Hack
+- R: Rewind loop manually
 
-## 🛠️ Tech Stack & Key Implementations
+## Setup
 
-- **Three.js & WebGL:** Custom lighting, PCF soft shadows, and UnrealBloom post-processing.
-- **Input & Transform Replay System:** Records player position $(x, z)$, rotation, and weapon fire every tick, then interpolates with `Vector3.lerp` for smooth ghost playback.
-- **Object Pooling:** Bullets and particles are pre-allocated in memory to avoid garbage collection spikes and keep a solid 60 FPS.
-- **Procedural Audio:** All sound effects (laser shots, hit markers, explosions, rewind Doppler sweeps, and background rhythm) are synthesized in real time using the Web Audio API without external audio files.
-
----
-
-## 🕹️ Controls
-
-- **WASD / Arrow Keys:** Movement
-- **Left Mouse Click:** Shoot
-- **Space:** Dash / Thruster Boost
-- **E:** Hack terminals
-- **R:** Rewind loop manually
-
----
-
-## 🚀 How to Run Locally
-
-```bash
-# Clone the repository
-git clone https://github.com/karabul7tt/echo-protocol.git
-
-# Navigate into the folder
-cd echo-protocol
-
-# Install dependencies
 npm install
-
-# Start local development server
 npm run dev
-```
 
----
+## Author
 
-**Developed by Mehmet Karabulut**  
-[GitHub Profile](https://github.com/karabul7tt) • [Portfolio](https://mehmetkarabul7tt.com.tr)
+Mehmet Karabulut
