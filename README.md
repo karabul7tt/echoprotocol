@@ -2,6 +2,8 @@
 
 A 3D top-down tactical action game prototype made with Three.js and the Web Audio API.
 
+**Live Demo:** [https://karabul7tt.github.io/echo-protocol/](https://karabul7tt.github.io/echo-protocol/)
+
 The main mechanic is a 12-second time loop. In each run, your actions (movement, rotation, shooting, and abilities) are recorded every tick. When the timer runs out or when you take fatal damage, time rewinds. In the next loop, a holographic ghost clone of your previous run replays beside you, allowing you to trigger switches, distract sentries, and flank enemies together.
 
 ## How it Works
