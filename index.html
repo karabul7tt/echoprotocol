@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ECHO PROTOCOL // Tactical Temporal Breach</title>
+  
+  <meta name="description" content="ECHO PROTOCOL — Industrial Sci-Fi Tactical Time-Loop Action. Built with Three.js WebGL and Web Audio.">
+  <meta name="author" content="Mehmet Karabulut">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            tactical: {
+              950: '#06070a',
+              900: '#0b0d13',
+              850: '#10131c',
+              800: '#171c26',
+              700: '#222938',
+              border: '#2c3549',
+              amber: '#f59e0b',
+              amberGlow: '#fbbf24',
+              hazard: '#d97706',
+              ice: '#38bdf8',
+              crimson: '#ef4444',
+              metal: '#818cf8'
+            }
+          },
+          fontFamily: {
+            oxanium: ['"Oxanium"', 'sans-serif'],
+            chakra: ['"Chakra Petch"', 'sans-serif'],
+            rajdhani: ['"Rajdhani"', 'sans-serif'],
+            mono: ['"Share Tech Mono"', '"Geist Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Oxanium, Chakra Petch, Rajdhani, Share Tech Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700;800&family=Oxanium:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    body {
+      background-color: #06070a;
+      overflow: hidden;
+      font-family: 'Rajdhani', sans-serif;
+    }
+    canvas#gameCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      display: block;
+    }
+    .tactical-film {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(6, 7, 10, 0.92) 100%),
+                  linear-gradient(rgba(245, 158, 11, 0.015) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(245, 158, 11, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 48px 48px, 48px 48px;
+    }
+    .temporal-rewind-active {
+      animation: rewindStrobe 0.09s infinite;
+      filter: contrast(1.5) saturate(0.2) brightness(1.25);
+    }
+    @keyframes rewindStrobe {
+      0% { transform: scale(1) translate(0, 0); }
+      25% { transform: scale(1.01) translate(-3px, 2px); }
+      50% { transform: scale(0.995) translate(3px, -2px); }
+      75% { transform: scale(1.005) translate(-2px, -1px); }
+      100% { transform: scale(1) translate(0, 0); }
+    }
+    .cut-corner {
+      clip-path: polygon(
+        0 0,
+        calc(100% - 12px) 0,
+        100% 12px,
+        100% 100%,
+        12px 100%,
+        0 calc(100% - 12px)
+      );
+    }
+    .cut-corner-sm {
+      clip-path: polygon(
+        0 0,
+        calc(100% - 8px) 0,
+        100% 8px,
+        100% 100%,
+        8px 100%,
+        0 calc(100% - 8px)
+      );
+    }
+    .tactical-panel {
+      background: rgba(11, 13, 19, 0.88);
+      border: 1px solid #222938;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    #hitMarker {
+      position: absolute;
+      pointer-events: none;
+      z-index: 50;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 0.06s ease-out;
+    }
+    .hit-line {
+      stroke: #ef4444;
+      stroke-width: 2.2;
+      stroke-linecap: square;
+    }
+    .damage-popup {
+      position: absolute;
+      pointer-events: none;
+      font-family: 'Oxanium', sans-serif;
+      font-weight: 800;
+      animation: popupElevation 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      z-index: 30;
+    }
+    @keyframes popupElevation {
+      0% { opacity: 1; transform: translate(-50%, 0) scale(1.2); }
+      100% { opacity: 0; transform: translate(-50%, -36px) scale(0.9); }
+    }
+  </style>
+
+  <!-- Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.166.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body class="w-screen h-screen select-none overflow-hidden text-slate-200 bg-[#06070a]">
+
+  <canvas id="gameCanvas"></canvas>
+  <div class="tactical-film"></div>
+  <div id="floatingTextContainer" class="absolute inset-0 pointer-events-none z-30"></div>
+
+  <div id="hitMarker">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <line x1="4" y1="4" x2="9" y2="9" class="hit-line" />
+      <line x1="22" y1="4" x2="17" y2="9" class="hit-line" />
+      <line x1="4" y1="22" x2="9" y2="17" class="hit-line" />
+      <line x1="22" y1="22" x2="17" y2="17" class="hit-line" />
+    </svg>
+  </div>
+
+  <!-- HUD LAYER -->
+  <div id="hudLayer" class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-4 md:p-6">
+    <div class="flex flex-col gap-2 w-full max-w-4xl mx-auto">
+      <div class="flex items-center justify-between tactical-panel cut-corner px-4 py-2.5 border-l-4 border-l-amber-500">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 bg-[#11141c] border border-tactical-border flex items-center justify-center text-amber-400 font-oxanium font-black text-sm cut-corner-sm">
+            Δ
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-oxanium font-extrabold text-sm tracking-widest text-white uppercase">ECHO PROTOCOL</span>
+              <span class="text-[10px] uppercase font-chakra font-bold px-2 py-0.5 bg-amber-950/70 border border-amber-500/40 text-amber-400 tracking-wider cut-corner-sm" id="badgeLoopState">
+                TIMELINE 01 // ALPHA RECORDING
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-mono tracking-wide" id="txtSectorName">FACILITY-SEC-01 // AUTOMATED VAULT INFILTRATION</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-5 font-oxanium">
+          <div class="text-right">
+            <span class="text-[9px] text-slate-400 uppercase tracking-widest block font-chakra font-medium">TEMPORAL RESIDUAL</span>
+            <span id="txtLoopTimer" class="text-2xl font-black text-amber-400 tracking-tight">12.00s</span>
+          </div>
+
+          <div class="h-8 w-px bg-tactical-border hidden sm:block"></div>
+
+          <div class="text-right hidden sm:block">
+            <span class="text-[9px] text-slate-400 uppercase tracking-widest block font-chakra font-medium">TARGET INTEGRITY</span>
+            <div class="w-32 h-2.5 bg-[#090b10] border border-tactical-border cut-corner-sm overflow-hidden mt-1 p-0.5">
+              <div id="barBossHealth" class="h-full bg-gradient-to-r from-amber-500 to-rose-600 w-full transition-all duration-100"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHRONO TRACKS -->
+      <div class="tactical-panel cut-corner px-3.5 py-2 flex items-center gap-3">
+        <span class="text-[10px] font-chakra font-bold tracking-wider text-slate-400 uppercase shrink-0">CHRONO MATRIX</span>
+        <div class="flex-1 flex flex-col gap-1">
+          <div class="w-full h-1.5 bg-[#06070a] border border-tactical-border overflow-hidden relative">
+            <div id="barTrackAlpha" class="h-full bg-amber-400 w-0 transition-all"></div>
+          </div>
+          <div class="w-full h-1.5 bg-[#06070a] border border-tactical-border overflow-hidden relative">
+            <div id="barTrackBeta" class="h-full bg-sky-400 w-0 transition-all"></div>
+          </div>
+          <div class="w-full h-1.5 bg-[#06070a] border border-tactical-border overflow-hidden relative">
+            <div id="barTrackGamma" class="h-full bg-slate-300 w-0 transition-all"></div>
+          </div>
+        </div>
+
+        <button id="btnAudioToggle" class="pointer-events-auto shrink-0 px-3 py-1 bg-[#10131c] hover:bg-[#181d27] border border-tactical-border text-slate-300 cut-corner-sm text-xs font-chakra transition flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <span id="txtAudioState" class="text-[10px] font-bold tracking-wider">SYNTH_ON</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- OBJECTIVE BANNER -->
+    <div id="objectiveBanner" class="self-center tactical-panel cut-corner px-5 py-2 flex items-center gap-2.5 border-amber-500/40">
+      <span class="w-2 h-2 rounded-sm bg-amber-400 animate-ping"></span>
+      <span id="txtObjective" class="text-xs font-oxanium font-bold text-slate-200 tracking-wider uppercase">
+        OBJECTIVE: Step on Switch A & B with past clones to neutralize security barrier
+      </span>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="flex items-end justify-between w-full max-w-4xl mx-auto">
+      <div class="tactical-panel cut-corner p-3 flex items-center gap-3.5">
+        <div class="w-10 h-10 bg-[#10131c] border border-tactical-border cut-corner-sm flex items-center justify-center font-oxanium font-black text-amber-400 text-xs">
+          OP-1
+        </div>
+        <div class="space-y-1 font-chakra">
+          <div class="flex justify-between text-[10px] text-slate-400 tracking-wider">
+            <span>EXOSUIT INTEGRITY</span>
+            <span id="txtPlayerHP" class="text-amber-400 font-bold">100 / 100</span>
+          </div>
+          <div class="w-36 h-2 bg-[#06070a] border border-tactical-border overflow-hidden p-0.5">
+            <div id="barPlayerHP" class="h-full bg-amber-400 w-full transition-all"></div>
+          </div>
+
+          <div class="flex justify-between text-[9px] text-slate-400 tracking-wider">
+            <span>THRUSTER BOOST [SPACE]</span>
+            <span id="txtDashCooldown" class="text-sky-400 font-bold">READY</span>
+          </div>
+          <div class="w-36 h-1 bg-[#06070a] border border-tactical-border overflow-hidden">
+            <div id="barDashCooldown" class="h-full bg-sky-400 w-full transition-all"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center gap-3 tactical-panel cut-corner px-4 py-2 text-[11px] font-chakra text-slate-400">
+        <div><span class="px-1.5 py-0.5 bg-[#161b22] border border-tactical-border rounded text-slate-100 font-bold">WASD</span> Move</div>
+        <div><span class="px-1.5 py-0.5 bg-[#161b22] border border-tactical-border rounded text-slate-100 font-bold">M1</span> Plasma</div>
+        <div><span class="px-1.5 py-0.5 bg-[#161b22] border border-tactical-border rounded text-slate-100 font-bold">SPACE</span> Boost</div>
+        <div><span class="px-1.5 py-0.5 bg-[#161b22] border border-tactical-border rounded text-slate-100 font-bold">E</span> Override</div>
+      </div>
+
+      <button id="btnRewindAction" class="pointer-events-auto px-5 py-3 bg-[#171c26] hover:bg-[#202736] border border-tactical-border hover:border-amber-500/60 cut-corner text-slate-100 hover:text-amber-400 font-oxanium font-bold text-xs tracking-wider transition flex items-center gap-2 shadow-lg">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        <span>REWIND PARADOX [R]</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ON-SCREEN TOUCH CONTROLS (MOBILE) -->
+  <div id="mobileControls" class="absolute inset-0 pointer-events-none z-20 flex justify-between items-end p-6 md:hidden">
+    <div id="touchJoyZone" class="pointer-events-auto w-32 h-32 rounded-full border border-tactical-border bg-[#0b0d13]/70 backdrop-blur-sm relative flex items-center justify-center">
+      <div id="touchJoyKnob" class="w-12 h-12 rounded-full bg-slate-600 border border-slate-400 shadow"></div>
+    </div>
+
+    <div class="pointer-events-auto flex flex-col gap-2.5">
+      <button id="btnTouchShoot" class="w-16 h-16 rounded-full bg-amber-600/90 active:bg-amber-500 border border-amber-400 text-slate-950 font-oxanium font-bold text-xs flex items-center justify-center">
+        FIRE
+      </button>
+      <div class="flex gap-2">
+        <button id="btnTouchDash" class="w-14 h-14 rounded-full bg-slate-800 active:bg-slate-700 border border-tactical-border text-slate-200 font-chakra font-bold text-xs flex items-center justify-center">
+          DASH
+        </button>
+        <button id="btnTouchHack" class="w-14 h-14 rounded-full bg-slate-800 active:bg-slate-700 border border-tactical-border text-slate-200 font-chakra font-bold text-xs flex items-center justify-center">
+          HACK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="screenModal" class="absolute inset-0 z-40 bg-[#06070a]/92 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="max-w-lg w-full tactical-panel cut-corner p-6 sm:p-8 text-center relative overflow-hidden">
+      <div class="inline-flex items-center gap-2 px-3 py-1 bg-[#10131c] border border-tactical-border text-amber-400 text-[11px] font-chakra font-semibold mb-3 cut-corner-sm">
+        TACTICAL CHRONO-REPLAY ENGINE // VER 2.4
+      </div>
+
+      <h1 id="modalTitle" class="text-3xl sm:text-4xl font-black tracking-tight text-white mb-2 font-oxanium uppercase">
+        ECHO PROTOCOL
+      </h1>
+      <p class="text-xs uppercase tracking-widest text-amber-400 font-chakra mb-4 font-bold">
+        TEMPORAL SYNCHRONIZATION OPERATION
+      </p>
+
+      <p id="modalDesc" class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6 font-rajdhani text-base">
+        You operate within a <strong>12-second temporal loop</strong>. In Loop 1, scout ahead, suppress sentry defenses, or depress security switches. When time rewinds, your <strong>holographic past ghost clone</strong> executes your exact movements—allowing you to coordinate multi-angle tactical breaches.
+      </p>
+
+      <div class="grid grid-cols-3 gap-2 text-left mb-6 font-chakra text-[10px] text-slate-300 bg-[#06070a] p-3 border border-tactical-border cut-corner-sm">
+        <div class="space-y-1">
+          <span class="text-amber-400 font-bold block">01. RECORD</span>
+          <p class="text-slate-400">Fixed-tick state & input ring buffer.</p>
+        </div>
+        <div class="space-y-1">
+          <span class="text-sky-400 font-bold block">02. REPLAY</span>
+          <p class="text-slate-400">Sub-frame interpolated phantom agents.</p>
+        </div>
+        <div class="space-y-1">
+          <span class="text-slate-200 font-bold block">03. BREACH</span>
+          <p class="text-slate-400">Synchronized pressure gates and boss phases.</p>
+        </div>
+      </div>
+
+      <button id="btnModalAction" class="w-full py-3.5 px-5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm tracking-wider uppercase font-oxanium cut-corner transition-all shadow-lg hover:scale-[1.01] active:scale-[0.99]">
+        COMMENCE OPERATION // INITIALIZE
+      </button>
+
+      <div class="mt-4 flex items-center justify-center gap-3 text-[11px] font-mono text-slate-400">
+        <span>Engineered by <strong class="text-slate-200">Mehmet Karabulut</strong></span>
+        <span>•</span>
+        <a href="https://github.com/karabul7tt" target="_blank" class="text-amber-400 hover:underline">GitHub</a>
+        <span>•</span>
+        <a href="https://mehmetkarabul7tt.com.tr" target="_blank" class="text-amber-400 hover:underline">Portfolio</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

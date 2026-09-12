@@ -1,0 +1,18 @@
+{
+  "name": "echo-protocol",
+  "version": "1.0.0",
+  "private": true,
+  "description": "3D Tactical Time-Paradox Action Game Engine featuring Deterministic Replay Buffers and Zero-GC Object Pooling.",
+  "author": "Mehmet Karabulut <karabulutmehmet686@gmail.com>",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "three": "^0.166.0"
+  }
+}
