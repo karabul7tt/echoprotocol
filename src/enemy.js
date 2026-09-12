@@ -1,11 +1,8 @@
-/**
- * ECHO PROTOCOL // ENEMY SECURITY SENTINELS (FSM AI)
- * Engineered by Mehmet Karabulut
- */
+// Enemy AI (Drones, Turrets, and Boss Mech)
 import * as THREE from 'three';
 
-export class CyberEnemy {
-  constructor(scene, type = 'DRONE', x = 0, z = -10, hp = 60) {
+export class Enemy {
+  constructor(scene, type = 'drone', x = 0, z = -10, hp = 60) {
     this.scene = scene;
     this.type = type;
     this.hp = hp;
@@ -19,18 +16,22 @@ export class CyberEnemy {
     this.mesh = new THREE.Group();
     this.mesh.position.copy(this.pos);
 
-    if (type === 'DRONE') {
-      const coreGeo = new THREE.CylinderGeometry(0.7, 0.9, 0.5, 6);
-      const mat = new THREE.MeshStandardMaterial({ color: '#161b24', metalness: 0.9, roughness: 0.3 });
-      this.body = new THREE.Mesh(coreGeo, mat);
-      this.body.position.y = 1.9;
-      this.body.castShadow = true;
-      this.mesh.add(this.body);
+    if (type === 'drone') {
+      const core = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.7, 0.9, 0.5, 6),
+        new THREE.MeshStandardMaterial({ color: '#161b24', metalness: 0.9, roughness: 0.3 })
+      );
+      core.position.y = 1.9;
+      core.castShadow = true;
+      this.mesh.add(core);
 
-      const optic = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), new THREE.MeshBasicMaterial({ color: '#ef4444' }));
-      optic.position.set(0, 1.85, 0.6);
-      this.mesh.add(optic);
-    } else if (type === 'TURRET') {
+      const eye = new THREE.Mesh(
+        new THREE.SphereGeometry(0.24, 8, 8),
+        new THREE.MeshBasicMaterial({ color: '#ef4444' })
+      );
+      eye.position.set(0, 1.85, 0.6);
+      this.mesh.add(eye);
+    } else if (type === 'turret') {
       const base = new THREE.Mesh(
         new THREE.CylinderGeometry(1.6, 2.1, 1.2, 8),
         new THREE.MeshStandardMaterial({ color: '#11141c', metalness: 0.95 })
@@ -39,11 +40,14 @@ export class CyberEnemy {
       base.castShadow = true;
       this.mesh.add(base);
 
-      const barrels = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 2.2), new THREE.MeshBasicMaterial({ color: '#181d27' }));
-      barrels.position.set(0, 1.5, 0.8);
-      barrels.castShadow = true;
-      this.mesh.add(barrels);
-    } else if (type === 'BOSS') {
+      const gun = new THREE.Mesh(
+        new THREE.BoxGeometry(0.7, 0.5, 2.2),
+        new THREE.MeshBasicMaterial({ color: '#181d27' })
+      );
+      gun.position.set(0, 1.5, 0.8);
+      gun.castShadow = true;
+      this.mesh.add(gun);
+    } else if (type === 'boss') {
       const titan = new THREE.Mesh(
         new THREE.BoxGeometry(5.2, 4.0, 5.2),
         new THREE.MeshStandardMaterial({ color: '#11141c', metalness: 0.95, roughness: 0.2 })
@@ -74,17 +78,18 @@ export class CyberEnemy {
   update(actors, dt, onShoot) {
     if (this.isDead) return;
 
-    let closestActor = null;
+    // Target the closest active entity (Player OR Ghost Clone Decoy)
+    let closest = null;
     let minDist = 999;
-    for (const actor of actors) {
-      if (!actor || actor.isDead || !actor.mesh.visible) continue;
-      const d = this.pos.distanceTo(actor.pos);
+    for (const a of actors) {
+      if (!a || a.isDead || !a.mesh.visible) continue;
+      const d = this.pos.distanceTo(a.pos);
       if (d < minDist) {
         minDist = d;
-        closestActor = actor;
+        closest = a;
       }
     }
-    this.target = closestActor;
+    this.target = closest;
 
     if (this.target) {
       const dx = this.target.pos.x - this.pos.x;
@@ -92,19 +97,18 @@ export class CyberEnemy {
       this.rotY = Math.atan2(dx, dz);
       this.mesh.rotation.y = this.rotY;
 
-      if (this.type === 'DRONE' && minDist > 6.0) {
+      if (this.type === 'drone' && minDist > 6.0) {
         const spd = 4.5 * dt;
         this.pos.x += Math.sin(this.rotY) * spd;
         this.pos.z += Math.cos(this.rotY) * spd;
-        this.body.position.y = 1.9 + Math.sin(Date.now() * 0.006) * 0.25;
       }
 
       this.shootCooldown -= dt;
       if (this.shootCooldown <= 0 && minDist < 32) {
-        this.shootCooldown = (this.type === 'BOSS') ? 0.6 : (1.4 + Math.random() * 0.6);
-        const muzzleX = this.pos.x + Math.sin(this.rotY) * 1.6;
-        const muzzleZ = this.pos.z + Math.cos(this.rotY) * 1.6;
-        onShoot(muzzleX, muzzleZ, Math.sin(this.rotY), Math.cos(this.rotY));
+        this.shootCooldown = (this.type === 'boss') ? 0.6 : (1.4 + Math.random() * 0.6);
+        const mx = this.pos.x + Math.sin(this.rotY) * 1.6;
+        const mz = this.pos.z + Math.cos(this.rotY) * 1.6;
+        onShoot(mx, mz, Math.sin(this.rotY), Math.cos(this.rotY));
       }
     }
 
@@ -119,7 +123,7 @@ export class CyberEnemy {
     if (this.hp <= 0) {
       this.isDead = true;
       this.mesh.visible = false;
-      onDeath(this.pos.x, this.pos.z, this.type === 'BOSS');
+      onDeath(this.pos.x, this.pos.z, this.type === 'boss');
     }
   }
 

@@ -1,31 +1,25 @@
-/**
- * ECHO PROTOCOL // ZERO-GC OBJECT POOL
- * Engineered by Mehmet Karabulut
- * Pre-allocated projectile & kinetic debris pooling for rock-solid 60 FPS.
- */
+// Object pool for bullets and particle effects to avoid GC stutter
 import * as THREE from 'three';
 
-export class ProjectilePool {
-  constructor(scene, maxBullets = 160) {
+export class BulletPool {
+  constructor(scene, max = 150) {
     this.scene = scene;
     this.bullets = [];
 
-    const geo = new THREE.CylinderGeometry(0.12, 0.12, 0.9, 6);
+    const geo = new THREE.CylinderGeometry(0.12, 0.12, 0.8, 6);
     geo.rotateX(Math.PI / 2);
 
-    const playerMat = new THREE.MeshBasicMaterial({ color: '#fbbf24' });
-    const ghostMat  = new THREE.MeshBasicMaterial({ color: '#38bdf8' });
-    const enemyMat  = new THREE.MeshBasicMaterial({ color: '#ef4444' });
+    const pMat = new THREE.MeshBasicMaterial({ color: '#fbbf24' }); // Player: amber
+    const gMat = new THREE.MeshBasicMaterial({ color: '#38bdf8' }); // Ghost: blue
+    const eMat = new THREE.MeshBasicMaterial({ color: '#ef4444' }); // Enemy: red
 
-    for (let i = 0; i < maxBullets; i++) {
-      const mesh = new THREE.Mesh(geo, playerMat);
+    for (let i = 0; i < max; i++) {
+      const mesh = new THREE.Mesh(geo, pMat);
       mesh.visible = false;
       this.scene.add(mesh);
       this.bullets.push({
         mesh,
-        playerMat,
-        ghostMat,
-        enemyMat,
+        pMat, gMat, eMat,
         active: false,
         pos: new THREE.Vector3(),
         vel: new THREE.Vector3(),
@@ -52,12 +46,12 @@ export class ProjectilePool {
 
     b.mesh.position.copy(b.pos);
     b.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), b.vel.clone().normalize());
-    b.mesh.material = isEnemy ? b.enemyMat : (isGhost ? b.ghostMat : b.playerMat);
+    b.mesh.material = isEnemy ? b.eMat : (isGhost ? b.gMat : b.pMat);
     b.mesh.visible = true;
     return b;
   }
 
-  update(dt, walls, laserGates, onWallHit) {
+  update(dt, walls, gates, onHit) {
     for (const b of this.bullets) {
       if (!b.active) continue;
 
@@ -71,22 +65,22 @@ export class ProjectilePool {
       b.pos.addScaledVector(b.vel, dt);
       b.mesh.position.copy(b.pos);
 
-      // Wall collision
+      // Check wall collisions
       for (const w of walls) {
         if (b.pos.x >= w.minX && b.pos.x <= w.maxX && b.pos.z >= w.minZ && b.pos.z <= w.maxZ) {
           b.active = false;
           b.mesh.visible = false;
-          onWallHit(b.pos.x, b.pos.z, b.isEnemy ? '#ef4444' : '#fbbf24');
+          onHit(b.pos.x, b.pos.z, b.isEnemy ? '#ef4444' : '#fbbf24');
           break;
         }
       }
 
-      // Barrier collision
-      for (const gate of laserGates) {
+      // Check laser gate collisions
+      for (const gate of gates) {
         if (gate.blocks(b.pos.x, b.pos.z, 0.3)) {
           b.active = false;
           b.mesh.visible = false;
-          onWallHit(b.pos.x, b.pos.z, '#ef4444');
+          onHit(b.pos.x, b.pos.z, '#ef4444');
           break;
         }
       }
